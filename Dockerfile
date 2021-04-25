@@ -1,1 +1,2 @@
-FROM dorgeln/fastnotes:0.0.15
+ARG VERSION=0.0.16
+FROM dorgeln/fastnotes:${VERSION}
