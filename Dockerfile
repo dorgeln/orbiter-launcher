@@ -1,2 +1,2 @@
-ARG VERSION=0.0.17
-FROM dorgeln/fastnotes:${VERSION}
+ARG VERSION=0.0.18
+FROM dorgeln/orbiter:${VERSION}
