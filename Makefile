@@ -23,56 +23,27 @@ PYTHON_BUILD := Cython numpy pandas jupyterlab altair altair_saver nbgitpuller j
 PYTHON_BUILDEXTRA :=   jupyterlite ttygif nbdev # dvc jupyterlab-dvc
 PYTHON_DEPLOY = vega_datasets
 
+pyenv:
+	pyenv install -s ${PYTHON_VERSION}
+	pyenv local ${PYTHON_VERSION}
+	pyenv global ${PYTHON_VERSION}
+	python --version
 
 
 devel:
-	pip install doit jupyter-repo2docker
+	python -m pip install --upgrade pi
+	pip install -U poetry -U jupyter-repo2docker -U invoke -U jupyter-repo2docker -U pyyaml
 
 run:
 	docker image rm --force orbiter
 	jupyter-repo2docker --debug  --user-name ${USER} --user-id ${UID} -P --volume ${NOTEBOOK_DIR}:./notebooks --volume ${BOOK_DIR}:./book --volume /home/${USER}/.ssh:.ssh --image-name orbiter .
 
 clean:
-	-rm package.json  package-lock.json  poetry.lock  pyproject.toml core/alpine.pkg build/alpine.pkg deploy/alpine.pkg  build/package.json build/requirements.txt build/requirements-extra.txt deploy/requirements.txt
+	inv clean
 
-deps: 
-	[ -f core/alpine.pkg ] || echo ${ALPINE_CORE} > core/alpine.pkg
-	[ -f build/alpine.pkg ] || echo ${ALPINE_BUILD} > build/alpine.pkg
-	[ -f deploy/alpine.pkg ] || echo ${ALPINE_DEPLOY} > deploy/alpine.pkg
-
-
-	if [ ! -f build/package.json ]; then
-		npm install --package-lock-only ${NPM_BUILD}
-		cp package.json build/package.json
-	fi
-
-	if [ ! -f pyproject.toml ]; then 
-		poetry init -n --python ${PYTHON_REQUIRED}
-		sed -i 's/version = "0.1.0"/version = "${VERSION}"/g' pyproject.toml
-		poetry config virtualenvs.path .env
-		poetry config cache-dir .cache;poetry config virtualenvs.in-project true 
-	fi
-
-
-	if [ ! -f build/requirements.txt ]; then
-		poetry add -v --lock ${PYTHON_BUILD}
-		poetry export --without-hashes -f requirements.txt -o build/requirements.txt
-	fi
-
-	if [ ! -f build/requirements-extra.txt ]; then 
-		poetry add -v --lock ${PYTHON_BUILDEXTRA}
-		poetry export --without-hashes -f requirements.txt -o build/requirements-extra.txt
-	fi
-
-	if [ ! -f deploy/requirements.txt ]; then
-		poetry add -v --lock ${PYTHON_DEPLOY}
-		poetry export --without-hashes -f requirements.txt -o deploy/requirements.txt
-	fi
-
-build: deps
-	docker image build --build-arg VERSION=${VERSION} --build-arg PYTHON_VERSION=${PYTHON_VERSION} --build-arg DOCKER_USER=${DOCKER_USER} --build-arg DOCKER_REPO=${DOCKER_REPO}  -t ${DOCKER_USER}/${DOCKER_REPO}:core -t ${DOCKER_USER}/${DOCKER_REPO}:core-${VERSION} core 
-	docker image build --build-arg VERSION=${VERSION} --build-arg DOCKER_USER=${DOCKER_USER} --build-arg DOCKER_REPO=${DOCKER_REPO}  -t ${DOCKER_USER}/${DOCKER_REPO}:build -t ${DOCKER_USER}/${DOCKER_REPO}:build-${VERSION} build
-	docker image build --build-arg VERSION=${VERSION} --build-arg DOCKER_USER=${DOCKER_USER} --build-arg DOCKER_REPO=${DOCKER_REPO}  -t ${DOCKER_USER}/${DOCKER_REPO}:latest -t ${DOCKER_USER}/${DOCKER_REPO}:${VERSION} deploy
-
-push: build
-	docker image push -a ${DOCKER_USER}/${DOCKER_REPO}
+build:
+	inv build
+push:
+	inv push
+prune:
+	inv prune

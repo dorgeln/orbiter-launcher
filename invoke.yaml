@@ -1,0 +1,50 @@
+version: 0.0.18
+
+python:
+  version: 3.8.8
+  required: ">=3.8,<3.9"
+
+alpine:
+  version: 20210212
+
+docker:
+  user: dorgeln
+  repo: orbiter
+
+core:
+  alpine: 
+    pkg: sudo bash curl git git-lfs ttf-liberation nodejs npm gettext openblas openblas-ilp64 lapack openssl tar zlib ncurses bzip2 xz cairo pango openjpeg tiff freetype pixman zeromq 
+    file: core/alpine.pkg
+
+devel:
+  alpine: 
+    pkg: build-base alpine-sdk g++ expat-dev openssl-dev zlib-dev ncurses-dev bzip2-dev xz-dev sqlite-dev libffi-dev linux-headers readline-dev pixman-dev cairo-dev pango-dev openjpeg-dev librsvg-dev giflib-dev libpng-dev openblas-dev lapack-dev gfortran libxml2-dev zeromq-dev gnupg expat-dev gdbm-dev libnsl-dev libtirpc-dev pax-utils util-linux-dev xz-dev zlib-dev libjpeg-turbo-dev tiff-dev libwebp-dev libimagequant-dev lcms2-dev cargo libxml2-dev libxslt-dev boost-dev gdal-dev gdal-tools proj-dev proj-util geos-dev libgit2-dev hdf5-dev netcdf-dev
+    file: devel/alpine.pkg
+  npm: 
+    pkg: vega-lite vega-cli canvas configurable-http-proxy
+    file: devel/package.json
+  python: 
+    pkg: numpy pandas jupyterlab altair altair_saver nbgitpuller jupyter-server-proxy jupyterlab-spellchecker pyyaml toml matplotlib  jupyterlab-git sphinx sphinx_panels jupyter-book invoke cython h5py netcdf4 cowsay sshkernel bash_kernel
+    file: devel/requirements.txt
+  python_extra: 
+    pkg:  cysgp4 asciinema lolcat ttygif Pillow nbdev
+    file: devel/requirements-extra.txt
+  alpine_test: 
+    pkg: geos-dev gdal-dev proj-dev
+    file: devel/alpine-test.pkg
+  python_test: 
+    pkg:  intake intake-stac sat-search fiona shapely pyproj rtree geopandas rasterio geopy  xarray  dvc  pydata_sphinx_theme
+    file: devel/requirements-test.txt
+ 
+base:
+  alpine: 
+    pkg: neofetch geos gdal gdal-tools proj proj-util libffi libzmq sqlite-libs  libffi  librsvg giflib libpng  libxml2  libnsl libxslt libtirpc libjpeg-turbo  libwebp libimagequant  libgit2
+    file: base/alpine.pkg
+  python: 
+    pkg: vega_datasets
+    file: base/requirements.txt
+
+
+debug: true
+run:
+  echo: true
