@@ -10,11 +10,13 @@ def version(c,version=None):
 
     print (version)
 
+
 @task
 def clean(c):
-    c.run("rm -f package.json package-lock.json devel/package.json")
-    c.run("rm -f pyproject.toml poetry.lock devel/requirements*.txt base/requirements*.txt")
-    c.run("rm -f core/alpine*.pkg devel/alpine*.pkg base/alpine*.pkg")
+    c.run("rm -f package.json package-lock.json base_devel/package.json")
+    c.run("rm -f pyproject.toml poetry.lock base_devel/requirements*.txt base/requirements*.txt")
+    c.run("rm -f core/alpine*.pkg base_devel/alpine*.pkg base/alpine*.pkg")
+
 
 @task()
 def prune(c):
@@ -30,15 +32,12 @@ def build_core(c):
 
 
 @task(build_core)
-def build_devel(c):
-    with open(c.devel.alpine.file, "w") as output:
-        output.write(c.devel.alpine.pkg+'\n')
-
-    with open(c.devel.alpine_test.file, "w") as output:
-        output.write(c.devel.alpine_test.pkg+'\n')
+def build_base_devel(c):
+    with open(c.base_devel.alpine.file, "w") as output:
+        output.write(c.base_devel.alpine.pkg+'\n')
 
     c.run("npm install - -package-lock-only {npm_pkg} && cp package.json {npm_file}".format(
-        npm_pkg=c.devel.npm.pkg, npm_file=c.devel.npm.file))
+        npm_pkg=c.base_devel.npm.pkg, npm_file=c.base_devel.npm.file))
 
     c.run("poetry init -n --python '{python_required}'".format(python_required=c.python.required))
 
@@ -46,21 +45,15 @@ def build_devel(c):
     c.run("poetry config cache-dir .cache")
     c.run("poetry config virtualenvs.in-project true")
 
-    c.run("poetry add -v --lock {python_pkg}".format(python_pkg=c.devel.python.pkg))
-    c.run("poetry export --without-hashes -f requirements.txt -o {python_file}".format(python_file=c.devel.python.file))
+    c.run("poetry add -v --lock {python_pkg}".format(python_pkg=c.base_devel.python.pkg))
+    c.run("poetry export --without-hashes -f requirements.txt -o {python_file}".format(python_file=c.base_devel.python.file))
 
-    c.run("poetry add -v --lock {python_pkg}".format(python_pkg=c.devel.python_extra.pkg))
-    c.run("poetry export --without-hashes -f requirements.txt -o {python_file}".format(python_file=c.devel.python_extra.file))
-
-    c.run("poetry add -v --lock {python_pkg}".format(python_pkg=c.devel.python_test.pkg))
-    c.run("poetry export --without-hashes -f requirements.txt -o {python_file}".format(python_file=c.devel.python_test.file))
-
-    c.run("docker image build --build-arg PYTHON_VERSION={python_version} --build-arg DOCKER_USER={docker_user} --build-arg DOCKER_REPO={docker_repo}  -t {docker_user}/{docker_repo}:devel -t {docker_user}/{docker_repo}:devel-{version} devel | tee build-devel.log".format(
+    c.run("docker image build --build-arg PYTHON_VERSION={python_version} --build-arg DOCKER_USER={docker_user} --build-arg DOCKER_REPO={docker_repo}  -t {docker_user}/{docker_repo}:base-devel -t {docker_user}/{docker_repo}:base-devel-{version} base-devel | tee build-base_devel.log".format(
         version=c.version, python_version=c.python.version, docker_user=c.docker.user, docker_repo=c.docker.repo))
 
 
-@task(build_devel)
-def build(c):
+@task(build_base_devel)
+def build_base(c):
     with open(c.base.alpine.file, "w") as output:
         output.write(c.base.alpine.pkg+'\n')
 
@@ -69,6 +62,34 @@ def build(c):
 
     c.run("docker image build --build-arg DOCKER_USER={docker_user} --build-arg DOCKER_REPO={docker_repo}  -t {docker_user}/{docker_repo}:base-{version} -t {docker_user}/{docker_repo}:base base | tee build-base.log ".format(
         version=c.version, docker_user=c.docker.user, docker_repo=c.docker.repo))
+
+
+@task(build_base_devel)
+def build_full_devel(c):
+    with open(c.full_devel.alpine.file, "w") as output:
+        output.write(c.full_devel.alpine.pkg+'\n')
+
+    c.run(
+        "poetry add -v --lock {python_pkg}".format(python_pkg=c.full_devel.python.pkg))
+    c.run("poetry export --without-hashes -f requirements.txt -o {python_file}".format(
+        python_file=c.full_devel.python.file))
+
+    c.run("docker image build --build-arg PYTHON_VERSION={python_version} --build-arg DOCKER_USER={docker_user} --build-arg DOCKER_REPO={docker_repo}  -t {docker_user}/{docker_repo}:full-devel -t {docker_user}/{docker_repo}:full-devel-{version} full-devel | tee build-full_devel.log".format(
+        version=c.version, python_version=c.python.version, docker_user=c.docker.user, docker_repo=c.docker.repo))
+
+
+@task(build_full_devel)
+def build_full(c):
+    with open(c.full.alpine.file, "w") as output:
+        output.write(c.full.alpine.pkg+'\n')
+
+    c.run("docker image build --build-arg DOCKER_USER={docker_user} --build-arg DOCKER_REPO={docker_repo}  -t {docker_user}/{docker_repo}:full-{version} -t {docker_user}/{docker_repo}:full full | tee build-full.log ".format(
+        version=c.version, docker_user=c.docker.user, docker_repo=c.docker.repo))
+
+
+@task(build_base, build_full)
+def build(c):
+    print("Building images")
 
 
 @task(build)
